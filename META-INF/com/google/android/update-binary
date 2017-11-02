@@ -3,8 +3,8 @@
 # osm0sis @ xda-developers
 
 OUTFD=/proc/self/fd/$2;
-ZIPFILE="$3";
-DIR=`dirname "$ZIPFILE"`;
+ZIP="$3";
+DIR=`dirname "$ZIP"`;
 
 ui_print() {
   until [ ! "$1" ]; do
@@ -17,60 +17,38 @@ set_perm_recursive() {
   dirs=$(echo $* | $bb awk '{ print substr($0, index($0,$5)) }');
   for i in $dirs; do
     $bb chown -R $1:$2 $i;
-    $bb find "$i" -type d -exec chmod $3 {} +;
-    $bb find "$i" -type f -exec chmod $4 {} +;
+    find "$i" -type d -exec chmod $3 {} +;
+    find "$i" -type f -exec chmod $4 {} +;
   done;
 }
 file_getprop() { grep "^$2" "$1" | cut -d= -f2; }
 getprop() { test -e /sbin/getprop && /sbin/getprop $1 || file_getprop /default.prop $1; }
 cleanup() { rm -rf /tmp/anykernel; }
-debugging() {
-  case $(basename "$ZIPFILE" .zip) in
-    *-debugging)
-      ui_print " ";
-      ui_print "Creating debugging archive in zip directory...";
-      $bb tar -czvf "$DIR/anykernel2-$(date +%Y-%m-%d_%H%M%S)-debug.tgz" /tmp/*;
-    ;;
-  esac;
-}
-abort() {
-  ui_print "$*";
-  debugging;
-  if [ ! -f /tmp/anykernel/anykernel.sh -o "$(file_getprop /tmp/anykernel/anykernel.sh do.cleanuponabort 2>/dev/null)" == 1 ]; then
-    cleanup;
-  fi;
-  umount /system;
-  umount /data 2>/dev/null;
-  exit 1;
-}
+if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.cleanuponabort)" == 1 ]; then
+    abort() { ui_print "$*"; cleanup; umount /system; umount /data; exit 1; }
+  else
+    abort() { ui_print "$*"; umount /system; umount /data; exit 1; }
+fi;
 
 show_progress 1.34 4;
 ui_print " ";
 cleanup;
 mkdir -p /tmp/anykernel/bin;
 cd /tmp/anykernel;
-unzip -o "$ZIPFILE";
+unzip -o "$ZIP";
 if [ $? != 0 -o -z "$(ls /tmp/anykernel/tools)" ]; then
   abort "Unzip failed. Aborting...";
 fi;
+chmod -R 755 /tmp/anykernel/tools /tmp/anykernel/bin;
 bb=/tmp/anykernel/tools/busybox;
-chmod 755 $bb;
-$bb chmod -R 755 /tmp/anykernel/tools /tmp/anykernel/bin;
 
-ui_print("----------------------------------");
-ui_print("   Flashing Radioactive kernel    ");
-ui_print("                                  ");
-ui_print("               by                 ");
-ui_print("                                  ");
-ui_print("           acuicultor             ");
-ui_print("----------------------------------");
-
+ui_print "$(file_getprop /tmp/anykernel/anykernel.sh kernel.string)";
 ui_print " ";
 ui_print "AnyKernel2 by osm0sis @ xda-developers";
 ui_print " ";
-umount /system 2>/dev/null;
+umount /system;
 mount -o ro -t auto /system;
-mount /data 2>/dev/null;
+mount /data;
 test -f /system/system/build.prop && root=/system;
 
 if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.devicecheck)" == 1 ]; then
@@ -104,19 +82,16 @@ if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.modules)" == 1 ]; then
   ui_print " ";
   ui_print "Pushing modules...";
   mount -o rw,remount -t auto /system;
-  $bb cp -rLf /tmp/anykernel/modules/* $root/system/lib/modules/;
+  cp -rf /tmp/anykernel/modules/* $root/system/lib/modules/;
   set_perm_recursive 0 0 0755 0644 $root/system/lib/modules;
-  chcon -R 'u:object_r:system_file:s0' $root/system/lib/modules;
   mount -o ro,remount -t auto /system;
 fi;
-
-debugging;
 
 if [ "$(file_getprop /tmp/anykernel/anykernel.sh do.cleanup)" == 1 ]; then
   cleanup;
 fi;
 
 umount /system;
-umount /data 2>/dev/null;
+umount /data;
 ui_print " ";
 ui_print "Done!";
