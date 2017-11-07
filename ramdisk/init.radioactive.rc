@@ -59,7 +59,6 @@ on property:persist.spectrum.profile=0
     write /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq 307200
     write /sys/devices/system/cpu/cpu2/cpufreq/scaling_max_freq 2150400
     write /sys/module/adreno_idler/parameters/adreno_idler_active Y
-    write /sys/kernel/fp_boost/enabled 1
     write /proc/sys/net/ipv4/tcp_congestion_control "westwood"
     write /sys/module/mdss_fb/parameters/backlight_dimmer 1   
   
