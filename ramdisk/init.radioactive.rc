@@ -5,6 +5,28 @@ on property:sys.boot_completed=1
     setprop spectrum.support 1
     setprop persist.spectrum.kernel Radioactive
 
+# MSM Thermal thresholds
+write  /sys/module/msm_thermal/parameters/enabled Y
+write  /sys/module/msm_thermal/core_control/enabled 0
+write  /sys/module/msm_thermal/parameters/temp_threshold 50
+write  /sys/module/msm_thermal/parameters/core_limit_temp_degC 60
+
+# Tune the sda block
+write /sys/block/dm-0/queue/scheduler "bfq"
+write /sys/block/dm-1/queue/scheduler "bfq"
+write /sys/block/sda/queue/scheduler "bfq"
+write /sys/block/sde/queue/scheduler "bfq"
+write  /sys/block/sda/queue/read_ahead_kb 128
+write  /sys/block/sda/queue/iosched/back_seek_penalty 4
+write  /sys/block/sda/queue/iosched/low_latency 0
+write  /sys/block/sda/queue/iosched/target_latency_us 300
+
+# Hardware keys backlight control
+on property:persist.hwkeys.backlight=enabled
+    write /sys/class/leds/button-backlight/max_brightness 40
+on property:persist.hwkeys.backlight=disabled
+    write /sys/class/leds/button-backlight/max_brightness 0
+
 # Balance (default profile)
 on property:persist.spectrum.profile=0
     write /proc/sys/kernel/sched_boost 1
@@ -182,24 +204,3 @@ on property:persist.spectrum.profile=3
     write /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq 307200
     write /sys/devices/system/cpu/cpu2/cpufreq/scaling_max_freq 2342400
     write /sys/module/adreno_idler/parameters/adreno_idler_active N
-
-# Tune the sda block
-write /sys/block/dm-0/queue/read_ahead_kb 512
-write /sys/block/dm-1/queue/read_ahead_kb 512
-write /sys/block/sda/queue/read_ahead_kb 512
-write /sys/block/sda/queue/iostats 1
-write /sys/block/sda/queue/nr_requests 128
-write /sys/block/sde/queue/read_ahead_kb 512
-
-# Hardware keys backlight control
-on property:persist.hwkeys.backlight=enabled
-    write /sys/class/leds/button-backlight/max_brightness 40
-on property:persist.hwkeys.backlight=disabled
-    write /sys/class/leds/button-backlight/max_brightness 0
-
-# Re-enable thermal and BCL hotplug
-    write /sys/module/msm_thermal/core_control/enabled 1
-    write /sys/devices/soc/soc:qcom,bcl/mode "disable"
-    write /sys/devices/soc/soc:qcom,bcl/hotplug_mask 0
-    write /sys/devices/soc/soc:qcom,bcl/hotplug_soc_mask 0
-    write /sys/devices/soc/soc:qcom,bcl/mode "enable"
